@@ -52,7 +52,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       })
       .catch((err) => {
         console.error("Auth error:", err);
-
         localStorage.removeItem("token");
         setToken(null);
         setUser(null);
@@ -67,8 +66,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    disconnectSocket();
-    initSocket(token);
+    const s = initSocket(token);
+
+    return () => {
+      s?.disconnect();
+    };
   }, [token]);
 
   // ================= LOGIN =================

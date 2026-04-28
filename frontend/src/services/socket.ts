@@ -11,10 +11,10 @@ export const getSocket = (): Socket => {
   return socket;
 };
 
-export const initSocket = (token: string): Socket => {
+export const initSocket = (token: string): Socket | null => {
   if (!token) {
     console.log("No token → socket not started");
-    return null as any;
+    return null;
   }
 
   if (socket) {
@@ -37,7 +37,7 @@ export const initSocket = (token: string): Socket => {
   socket.on("connect_error", (err) => {
     console.error("Socket connection error:", err.message);
   });
-  console.log("SOCKET TOKEN:", token);
+
   return socket;
 };
 
