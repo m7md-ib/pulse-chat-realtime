@@ -32,6 +32,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
   const [isLoading, setIsLoading] = useState(true);
 
+  // ================= SOCKET CONTROL =================
+  useEffect(() => {
+    if (!token) {
+      disconnectSocket();
+      return;
+    }
+
+    // تنظيف أي اتصال قديم ثم إنشاء واحد جديد
+    disconnectSocket();
+    initSocket(token);
+  }, [token]);
+
+  // ================= AUTH CHECK =================
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
 
@@ -49,30 +62,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .then(({ data }) => {
         setUser(data.user);
         setToken(storedToken);
-
-        // ⚠️ مهم: socket شغّله هون فقط
-        initSocket(storedToken);
       })
       .catch((err) => {
         console.error("Auth error:", err);
 
-        // ❌ لا تمسح التوكن إلا إذا 401 فقط
         if (err.response?.status === 401) {
           localStorage.removeItem("token");
           setToken(null);
+          setUser(null);
         }
       })
       .finally(() => setIsLoading(false));
   }, []);
 
+  // ================= LOGIN =================
   const login = async (email: string, password: string) => {
     const { data } = await api.post("/auth/login", { email, password });
+
     localStorage.setItem("token", data.token);
     setToken(data.token);
     setUser(data.user);
-    initSocket(data.token);
   };
 
+  // ================= REGISTER =================
   const register = async (
     username: string,
     email: string,
@@ -83,12 +95,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       email,
       password,
     });
+
     localStorage.setItem("token", data.token);
     setToken(data.token);
     setUser(data.user);
-    initSocket(data.token);
   };
 
+  // ================= LOGOUT =================
   const logout = () => {
     localStorage.removeItem("token");
     setToken(null);

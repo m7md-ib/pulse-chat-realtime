@@ -37,7 +37,7 @@ export const initSocket = (token: string): Socket => {
   socket.on("connect_error", (err) => {
     console.error("Socket connection error:", err.message);
   });
-
+  console.log("SOCKET TOKEN:", token);
   return socket;
 };
 
