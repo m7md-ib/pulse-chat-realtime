@@ -49,19 +49,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .then(({ data }) => {
         setUser(data.user);
         setToken(storedToken);
+
+        // ⚠️ مهم: socket شغّله هون فقط
         initSocket(storedToken);
       })
       .catch((err) => {
-        console.error("Auth error:", err.response?.data || err.message);
+        console.error("Auth error:", err);
 
+        // ❌ لا تمسح التوكن إلا إذا 401 فقط
         if (err.response?.status === 401) {
           localStorage.removeItem("token");
           setToken(null);
         }
       })
-      .finally(() => {
-        setIsLoading(false);
-      });
+      .finally(() => setIsLoading(false));
   }, []);
 
   const login = async (email: string, password: string) => {
