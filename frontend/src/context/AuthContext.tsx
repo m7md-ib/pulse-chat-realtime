@@ -3,12 +3,15 @@ import React, {
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from "react";
-import { User } from "../types";
+import { User, AuthResponse } from "../types";
 import api from "../services/api";
+import { tokenService } from "../services/tokenService";
 import { initSocket, disconnectSocket } from "../services/socket";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface AuthContextType {
   user: User | null;
   token: string | null;
@@ -23,43 +26,41 @@ interface AuthContextType {
   logout: () => void;
 }
 
+// ─── Context ──────────────────────────────────────────────────────────────────
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+// ─── Provider ─────────────────────────────────────────────────────────────────
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // ================= LOAD USER ON START =================
+  // ─── Persist session on app start ────────────────────────────────────────
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
+    const storedToken = tokenService.get();
 
     if (!storedToken) {
       setIsLoading(false);
       return;
     }
 
-    setToken(storedToken);
-
+    // Validate token against server
     api
-      .get("/auth/me", {
-        headers: {
-          Authorization: `Bearer ${storedToken}`,
-        },
-      })
+      .get<{ user: User }>("/auth/me")
       .then(({ data }) => {
+        setToken(storedToken);
         setUser(data.user);
       })
-      .catch((err) => {
-        console.error("Auth error:", err);
-        localStorage.removeItem("token");
+      .catch(() => {
+        // Token invalid or expired — clear everything
+        tokenService.remove();
         setToken(null);
         setUser(null);
       })
       .finally(() => setIsLoading(false));
   }, []);
 
-  // ================= SOCKET CONTROL =================
+  // ─── Socket lifecycle — driven by token ──────────────────────────────────
   useEffect(() => {
     if (!token) {
       disconnectSocket();
@@ -69,43 +70,52 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const s = initSocket(token);
 
     return () => {
-      s?.disconnect();
+      // Cleanup on token change or unmount — but don't kill socket on rerender
+      // Only disconnect when token becomes null (handled above)
+      s?.off("connect");
+      s?.off("disconnect");
     };
   }, [token]);
 
-  // ================= LOGIN =================
-  const login = async (email: string, password: string) => {
-    const { data } = await api.post("/auth/login", { email, password });
-
-    localStorage.setItem("token", data.token);
+  // ─── Set session helper ───────────────────────────────────────────────────
+  const setSession = useCallback((data: AuthResponse) => {
+    tokenService.set(data.token);
     setToken(data.token);
     setUser(data.user);
-  };
+  }, []);
 
-  // ================= REGISTER =================
-  const register = async (
-    username: string,
-    email: string,
-    password: string,
-  ) => {
-    const { data } = await api.post("/auth/register", {
-      username,
-      email,
-      password,
-    });
+  // ─── Login ────────────────────────────────────────────────────────────────
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const { data } = await api.post<AuthResponse>("/auth/login", {
+        email,
+        password,
+      });
+      setSession(data);
+    },
+    [setSession],
+  );
 
-    localStorage.setItem("token", data.token);
-    setToken(data.token);
-    setUser(data.user);
-  };
+  // ─── Register ─────────────────────────────────────────────────────────────
+  const register = useCallback(
+    async (username: string, email: string, password: string) => {
+      const { data } = await api.post<AuthResponse>("/auth/register", {
+        username,
+        email,
+        password,
+      });
+      setSession(data);
+    },
+    [setSession],
+  );
 
-  // ================= LOGOUT =================
-  const logout = () => {
-    localStorage.removeItem("token");
+  // ─── Logout ───────────────────────────────────────────────────────────────
+  const logout = useCallback(() => {
+    tokenService.remove();
     setToken(null);
     setUser(null);
     disconnectSocket();
-  };
+  }, []);
 
   return (
     <AuthContext.Provider
@@ -124,8 +134,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// ─── Hook ─────────────────────────────────────────────────────────────────────
 export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
-  if (!context) throw new Error("useAuth must be used within AuthProvider");
+  if (!context) throw new Error("useAuth must be used within <AuthProvider>");
   return context;
 };

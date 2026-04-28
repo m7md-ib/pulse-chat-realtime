@@ -1,26 +1,30 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { MessageCircle, Mail, Lock, AlertCircle } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { MessageCircle, Mail, Lock, AlertCircle } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
     try {
       await login(email, password);
-      navigate('/');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Login failed. Please try again.');
+      navigate("/");
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Login failed. Please try again.";
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -45,7 +49,7 @@ const LoginPage: React.FC = () => {
             className="auth-logo"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
           >
             <MessageCircle size={28} />
           </motion.div>
@@ -76,6 +80,7 @@ const LoginPage: React.FC = () => {
                 placeholder="you@example.com"
                 required
                 autoComplete="email"
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -91,6 +96,7 @@ const LoginPage: React.FC = () => {
                 placeholder="••••••••"
                 required
                 autoComplete="current-password"
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -99,19 +105,15 @@ const LoginPage: React.FC = () => {
             type="submit"
             className="auth-btn"
             disabled={isLoading}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: isLoading ? 1 : 1.02 }}
+            whileTap={{ scale: isLoading ? 1 : 0.98 }}
           >
-            {isLoading ? (
-              <span className="btn-spinner" />
-            ) : (
-              'Sign In'
-            )}
+            {isLoading ? <span className="btn-spinner" /> : "Sign In"}
           </motion.button>
         </form>
 
         <p className="auth-switch">
-          Don't have an account?{' '}
+          Don&apos;t have an account?{" "}
           <Link to="/register">Create one</Link>
         </p>
       </motion.div>

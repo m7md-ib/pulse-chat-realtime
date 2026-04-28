@@ -1,31 +1,47 @@
-import axios from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from "axios";
+import { tokenService } from "./tokenService";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 const api = axios.create({
-  baseURL: `${API_URL}/api`,
-  headers: { 'Content-Type': 'application/json' },
+  baseURL: BASE_URL,
+  timeout: 10_000,
+  headers: { "Content-Type": "application/json" },
 });
 
-// Attach JWT to every request
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+// ─── Request interceptor — attach token automatically ────────────────────────
+api.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = tokenService.get();
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error),
+);
 
-// Handle 401 globally
+// ─── Response interceptor — normalize errors ─────────────────────────────────
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
+  (error: AxiosError<{ message?: string }>) => {
+    const message =
+      error.response?.data?.message ||
+      error.message ||
+      "An unexpected error occurred";
+
+    // Token expired / invalid → clear storage and reload
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+      tokenService.remove();
+      // Avoid redirect loop on auth pages
+      const path = window.location.pathname;
+      if (path !== "/login" && path !== "/register") {
+        window.location.href = "/login";
+      }
     }
-    return Promise.reject(error);
-  }
+
+    return Promise.reject(new Error(message));
+  },
 );
 
 export default api;

@@ -1,38 +1,44 @@
+// ─── User ────────────────────────────────────────────────────────────────────
 export interface User {
   _id: string;
   username: string;
   email: string;
-  avatar: string;
-  isOnline: boolean;
+  avatar?: string;
   lastSeen?: string;
-  createdAt?: string;
 }
 
-export type MessageStatus = 'sent' | 'delivered' | 'seen';
+// ─── Message ─────────────────────────────────────────────────────────────────
+export type MessageStatus = "sending" | "sent" | "delivered" | "seen";
 
 export interface Message {
   _id: string;
-  senderId: User | string;
-  receiverId: User | string;
+  senderId: string | User;
+  receiverId: string;
   content: string;
   status: MessageStatus;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
-export interface AuthState {
-  user: User | null;
-  token: string | null;
-  isAuthenticated: boolean;
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+export interface LoginPayload {
+  email: string;
+  password: string;
 }
 
-export interface TypingState {
-  userId: string;
+export interface RegisterPayload {
   username: string;
-  isTyping: boolean;
+  email: string;
+  password: string;
 }
 
-export interface SendMessagePayload {
-  receiverId: string;
-  content: string;
+export interface AuthResponse {
+  token: string;
+  user: User;
+}
+
+// ─── API Error ────────────────────────────────────────────────────────────────
+export interface ApiError {
+  message: string;
+  status?: number;
 }

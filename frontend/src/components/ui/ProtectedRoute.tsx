@@ -1,9 +1,9 @@
-import React from 'react';
-import { Navigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import React, { ReactNode } from "react";
+import { Navigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 interface Props {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 const ProtectedRoute: React.FC<Props> = ({ children }) => {
@@ -11,17 +11,13 @@ const ProtectedRoute: React.FC<Props> = ({ children }) => {
 
   if (isLoading) {
     return (
-      <div className="loading-screen">
-        <div className="loading-spinner large" />
+      <div className="app-loading">
+        <div className="loading-spinner" />
       </div>
     );
   }
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return <>{children}</>;
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
 export default ProtectedRoute;
