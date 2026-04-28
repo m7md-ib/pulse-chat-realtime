@@ -27,24 +27,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(
-    localStorage.getItem("token"),
-  );
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // ================= SOCKET CONTROL =================
-  useEffect(() => {
-    if (!token) {
-      disconnectSocket();
-      return;
-    }
-
-    // تنظيف أي اتصال قديم ثم إنشاء واحد جديد
-    disconnectSocket();
-    initSocket(token);
-  }, [token]);
-
-  // ================= AUTH CHECK =================
+  // ================= LOAD USER ON START =================
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
 
@@ -52,6 +38,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
       return;
     }
+
+    setToken(storedToken);
 
     api
       .get("/auth/me", {
@@ -61,19 +49,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       })
       .then(({ data }) => {
         setUser(data.user);
-        setToken(storedToken);
       })
       .catch((err) => {
         console.error("Auth error:", err);
 
-        if (err.response?.status === 401) {
-          localStorage.removeItem("token");
-          setToken(null);
-          setUser(null);
-        }
+        localStorage.removeItem("token");
+        setToken(null);
+        setUser(null);
       })
       .finally(() => setIsLoading(false));
   }, []);
+
+  // ================= SOCKET CONTROL =================
+  useEffect(() => {
+    if (!token) {
+      disconnectSocket();
+      return;
+    }
+
+    disconnectSocket();
+    initSocket(token);
+  }, [token]);
 
   // ================= LOGIN =================
   const login = async (email: string, password: string) => {
