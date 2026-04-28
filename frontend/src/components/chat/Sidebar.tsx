@@ -1,16 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, LogOut, MessageCircle } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { useChatStore } from '../../store/chatStore';
-import { User } from '../../types';
-import { formatLastSeen } from '../../utils/formatTime';
+import React, { useEffect, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Search, LogOut, MessageCircle } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import { useChatStore } from "../../store/chatStore";
+import { User } from "../../types";
+import { formatLastSeen } from "../../utils/formatTime";
 
 const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
-  const { users, activeChat, onlineUsers, setActiveChat, fetchUsers, fetchMessages } =
-    useChatStore();
-  const [search, setSearch] = useState('');
+  const {
+    users,
+    activeChat,
+    onlineUsers,
+    setActiveChat,
+    fetchUsers,
+    fetchMessages,
+  } = useChatStore();
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     fetchUsers();
@@ -18,9 +24,10 @@ const Sidebar: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const filteredUsers = users.filter((u) =>
-    u.username.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredUsers = (users || []).filter((u) => {
+    const username = u?.username || "";
+    return username.toLowerCase().includes(search.toLowerCase());
+  });
 
   const handleSelectUser = (selectedUser: User) => {
     setActiveChat(selectedUser);
@@ -41,7 +48,10 @@ const Sidebar: React.FC = () => {
         <div className="sidebar-user">
           <div className="avatar-wrapper">
             <img
-              src={user?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username}`}
+              src={
+                user?.avatar ||
+                `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username}`
+              }
               alt={user?.username}
               className="avatar"
             />
@@ -84,7 +94,9 @@ const Sidebar: React.FC = () => {
       {/* Users list */}
       <div className="users-list">
         <p className="users-label">
-          {search ? `Results (${filteredUsers.length})` : `People (${users.length})`}
+          {search
+            ? `Results (${filteredUsers.length})`
+            : `People (${users.length})`}
         </p>
 
         <AnimatePresence>
@@ -100,7 +112,7 @@ const Sidebar: React.FC = () => {
             filteredUsers.map((u, i) => (
               <motion.div
                 key={u._id}
-                className={`user-item ${activeChat?._id === u._id ? 'active' : ''}`}
+                className={`user-item ${activeChat?._id === u._id ? "active" : ""}`}
                 onClick={() => handleSelectUser(u)}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -109,11 +121,16 @@ const Sidebar: React.FC = () => {
               >
                 <div className="avatar-wrapper">
                   <img
-                    src={u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`}
+                    src={
+                      u.avatar ||
+                      `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.username}`
+                    }
                     alt={u.username}
                     className="avatar"
                   />
-                  <span className={`status-dot ${isOnline(u._id) ? 'online' : 'offline'}`} />
+                  <span
+                    className={`status-dot ${isOnline(u._id) ? "online" : "offline"}`}
+                  />
                 </div>
                 <div className="user-info">
                   <div className="user-name-row">
@@ -121,10 +138,10 @@ const Sidebar: React.FC = () => {
                   </div>
                   <span className="user-status">
                     {isOnline(u._id)
-                      ? 'Online'
+                      ? "Online"
                       : u.lastSeen
-                      ? `Last seen ${formatLastSeen(u.lastSeen)}`
-                      : 'Offline'}
+                        ? `Last seen ${formatLastSeen(u.lastSeen)}`
+                        : "Offline"}
                   </span>
                 </div>
                 {isOnline(u._id) && <span className="online-badge" />}
